@@ -9,7 +9,7 @@ import SwiftUI
 import Foundation
 import ARKit
 
-@available(iOS 13.0, *)
+@available(iOS 14.0, *)
 struct ARViewContainer: UIViewControllerRepresentable {
     
     @Binding var labelText: String
