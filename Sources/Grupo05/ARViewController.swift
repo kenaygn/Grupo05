@@ -27,7 +27,7 @@ public class ARViewController: UIViewController, @MainActor ARSessionDelegate {
     var cameraFrame: CGRect
     var isCameraVisible: Bool
     
-    var onLabelUpdate: ((String) -> Void)?
+    public var onLabelUpdate: ((String) -> Void)?
     
     var labelText: String = "" {
         didSet {
