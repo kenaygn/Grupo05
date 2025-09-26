@@ -10,19 +10,24 @@ import Foundation
 import ARKit
 
 @available(iOS 14.0, *)
-struct ARViewContainer: UIViewControllerRepresentable {
+// Adicione 'public' aqui
+public struct ARViewContainer: UIViewControllerRepresentable {
     
     @Binding var labelText: String
     var cameraFrame: CGRect
     @Binding var isCameraVisible: Bool
     
-    func makeUIViewController(context: Context) -> ARViewController {
+    // E adicione 'public' aqui também
+    public init(labelText: Binding<String>, cameraFrame: CGRect, isCameraVisible: Binding<Bool>) {
+        self._labelText = labelText
+        self.cameraFrame = cameraFrame
+        self._isCameraVisible = isCameraVisible
+    }
+    
+    public func makeUIViewController(context: Context) -> ARViewController {
         let arViewController = ARViewController(cameraFrame: cameraFrame, isCameraVisible: isCameraVisible)
         
-        // 🔹 Conecta o retorno para atualizar o @Binding
-        // Esta é a parte que faltava.
         arViewController.onLabelUpdate = { newValue in
-            // Garante que a atualização seja na thread principal
             DispatchQueue.main.async {
                 self.labelText = newValue
             }
@@ -31,11 +36,8 @@ struct ARViewContainer: UIViewControllerRepresentable {
         return arViewController
     }
     
-    func updateUIViewController(_ uiViewController: ARViewController, context: Context) {
-        // Você pode remover a linha abaixo, pois a comunicação agora é unidirecional (Controller -> View)
-        // uiViewController.labelText = labelText
+    public func updateUIViewController(_ uiViewController: ARViewController, context: Context) {
         uiViewController.arView.isHidden = !isCameraVisible
         uiViewController.cameraFrame = cameraFrame
     }
-    
 }

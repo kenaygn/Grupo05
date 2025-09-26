@@ -21,7 +21,7 @@ import Vision
 import CoreML
 
 @available(iOS 14.0, *)
-class ARViewController: UIViewController, @MainActor ARSessionDelegate {
+public class ARViewController: UIViewController, @MainActor ARSessionDelegate {
 
     var arView: ARSCNView!
     var cameraFrame: CGRect
@@ -42,7 +42,7 @@ class ARViewController: UIViewController, @MainActor ARSessionDelegate {
     private let handPosePredictionInterval = 30
     
     
-    init(cameraFrame: CGRect, isCameraVisible: Bool) {
+    public init(cameraFrame: CGRect, isCameraVisible: Bool) {
         self.cameraFrame = cameraFrame
         self.isCameraVisible = isCameraVisible
         super.init(nibName: nil, bundle: nil)
@@ -52,7 +52,7 @@ class ARViewController: UIViewController, @MainActor ARSessionDelegate {
         fatalError("init(coder:) has not been implemented")
     }
     
-    override func viewDidLoad() {
+    override public func viewDidLoad() {
         super.viewDidLoad()
         checkCameraAccess()
     }
@@ -87,7 +87,7 @@ class ARViewController: UIViewController, @MainActor ARSessionDelegate {
     
     // MARK: - delegate funcs
     
-    func session(_ session: ARSession, didUpdate frame: ARFrame) {
+    public func session(_ session: ARSession, didUpdate frame: ARFrame) {
         frameCounter += 1
         guard frameCounter % handPosePredictionInterval == 0 else { return }
         
