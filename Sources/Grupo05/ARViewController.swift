@@ -132,9 +132,9 @@ public class ARViewController: UIViewController, @MainActor ARSessionDelegate {
     func renderHandPose(name: String) {
         switch name {
         case "aberta":
-            labelText = "Mão Aberta"
+            labelText = "aberta"
         case "fechada":
-            labelText = "Mão Fechada"
+            labelText = "fechada"
         default:
             clean()
         }
