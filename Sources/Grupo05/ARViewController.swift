@@ -20,22 +20,20 @@ import AVFoundation
 import Vision
 import CoreML
 
-
+@available(iOS 14.0, *)
 class ARViewController: UIViewController, @MainActor ARSessionDelegate {
-    
-    // vars
+
     var arView: ARSCNView!
     var cameraFrame: CGRect
     var isCameraVisible: Bool
     
-    // callback para devolver o valor para quem criou o ARViewController
     var onLabelUpdate: ((String) -> Void)?
     
     var labelText: String = "" {
         didSet {
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
-                self.onLabelUpdate?(self.labelText) // 🔹 devolve para o ContentView
+                self.onLabelUpdate?(self.labelText)
             }
         }
     }
@@ -57,30 +55,22 @@ class ARViewController: UIViewController, @MainActor ARSessionDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         checkCameraAccess()
-        
     }
     
     func checkCameraAccess() {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
-            
             setupARView()
-            
         case .notDetermined:
             AVCaptureDevice.requestAccess(for: .video) { enabled in
                 DispatchQueue.main.async {
                     if enabled {
                         self.setupARView()
-                    } else {
-                        print("not working...")
                     }
                 }
             }
-        case .denied, .restricted:
-            print("Check settings..")
-            
-        @unknown default:
-            print("Error")
+        default:
+            break
         }
     }
     
@@ -90,29 +80,18 @@ class ARViewController: UIViewController, @MainActor ARSessionDelegate {
         arView.isHidden = !isCameraVisible
         view.addSubview(arView)
         
-        // generak world tracking
-        
+        // Use ARWorldTrackingConfiguration para detecção de mãos
         let configuration = ARWorldTrackingConfiguration()
-        
-        // enable the front camera
-        
-        if ARFaceTrackingConfiguration.isSupported {
-            let faceTrackingConfig = ARFaceTrackingConfiguration()
-            arView.session.run(faceTrackingConfig)
-        } else {
-            // not supported
-            // show an alert
-            arView.session.run(configuration)
-        }
-        
+        arView.session.run(configuration)
     }
     
     // MARK: - delegate funcs
     
     func session(_ session: ARSession, didUpdate frame: ARFrame) {
         frameCounter += 1
+        guard frameCounter % handPosePredictionInterval == 0 else { return }
+        
         let pixelBuffer = frame.capturedImage
-        guard #available(iOS 14.0, *) else { return }
         
         let handPoseRequest = VNDetectHumanHandPoseRequest()
         handPoseRequest.maximumHandCount = 1
@@ -125,49 +104,26 @@ class ARViewController: UIViewController, @MainActor ARSessionDelegate {
             assertionFailure("Human Pose Request failed: \(error.localizedDescription)")
         }
         
-        guard let handPoses = handPoseRequest.results, !handPoses.isEmpty else {
-            // no effects to draw
+        guard let handPoses = handPoseRequest.results, let handObservation = handPoses.first else {
             return
         }
         
-        let handObservations = handPoses.first
-        
-        
-        if frameCounter % handPosePredictionInterval == 0 {
-            guard let keypointsMultiArray = try? handObservations!.keypointsMultiArray() else {
-                fatalError("Failed to create key points array")
-            }
-            do {
-                let config = MLModelConfiguration()
-                config.computeUnits = .cpuAndGPU
-                
-                // ML model version setup
-                // Aqui ele pega o modelo
-                let model = try HandGestures.init(configuration: config)
-                
-                let handPosePrediction = try model.prediction(poses: keypointsMultiArray)
-                let confidence = handPosePrediction.labelProbabilities[handPosePrediction.label]!
-                DispatchQueue.main.async { [weak self] in
-                    guard self != nil else { return }
-                }
-                print("labelProbabilities \(handPosePrediction.labelProbabilities)")
-
-                // render handpose effect
-                if confidence > 0.9 {
-
-                    print("handPosePrediction: \(handPosePrediction.label)")
-                    renderHandPose(name: handPosePrediction.label)
-                } else {
-                    print("handPosePrediction: \(handPosePrediction.label)")
-//                    cleanEmojii()
-
-                }
-                
-            } catch let error {
-                print("Failure HandyModel: \(error.localizedDescription)")
-            }
+        do {
+            guard let keypointsMultiArray = try? handObservation.keypointsMultiArray() else { return }
             
+            let config = MLModelConfiguration()
+            config.computeUnits = .cpuAndGPU
             
+            let model = try HandGestures(configuration: config)
+            let prediction = try model.prediction(poses: keypointsMultiArray)
+            
+            if let confidence = prediction.labelProbabilities[prediction.label], confidence > 0.9 {
+                renderHandPose(name: prediction.label)
+            } else {
+                clean()
+            }
+        } catch {
+            print("Failure HandyModel: \(error.localizedDescription)")
         }
     }
     
@@ -176,35 +132,22 @@ class ARViewController: UIViewController, @MainActor ARSessionDelegate {
     func renderHandPose(name: String) {
         switch name {
         case "aberta":
-            labelText = "aberta"
-            print("Aberta detectada")
-            
+            labelText = "Mão Aberta"
         case "fechada":
-            labelText = "fechada"
-            print("fechada handpose dedicted")
-            
-            
+            labelText = "Mão Fechada"
         default:
-            print("Remove nodes")
             clean()
         }
     }
     
-    
     private func clean() {
-
+        // Limpa os nós da cena para remover detecções antigas
+        arView.scene.rootNode.enumerateChildNodes { (node, stop) in
+            node.removeFromParentNode()
+        }
         DispatchQueue.main.async {
             self.labelText = ""
         }
     }
-    
-    
-    enum Pose: String {
-        case fechada = "fechada"
-        case aberta = "aberta"
-    
-    }
-    
-    
 }
 
