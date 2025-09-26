@@ -80,9 +80,9 @@ public class ARViewController: UIViewController, @MainActor ARSessionDelegate {
         arView.isHidden = !isCameraVisible
         view.addSubview(arView)
         
-        // Use ARWorldTrackingConfiguration para detecção de mãos
-        let configuration = ARWorldTrackingConfiguration()
+        let configuration = ARFaceTrackingConfiguration()
         arView.session.run(configuration)
+
     }
     
     // MARK: - delegate funcs
